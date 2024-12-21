@@ -31,31 +31,29 @@ def parse_pdf(file_path):
         os.mkdir(parsed_file_dir)
 
     # objectify pdf. For each page, make an image of that page, and save it to the parsed dir
-    print('   converting to images...')
     pdf = fitz.open(file_path)
     for page_number in range(len(pdf)):
-        print('      page:',page_number)
+        print('   page:',page_number)
         page_img_path = f'{parsed_file_dir}/{page_number+1}-{file_name}.png'
         page = pdf.load_page(page_number)
         pixel_map = page.get_pixmap(matrix=PDF_ZOOM_MATRIX)
         pixel_map.save(page_img_path)
+
+        # extract the text from the image using ocr
+        print('   extracting text...')
+        ocr_text = extract_text_from_img(page_img_path)
+
+        # recipe is illegible, ignore
+        if ocr_text == None:
+            continue
+        
+        print('   saving text...')
+        # save to a txt file in the same parsed dir
+        ocr_text_path = f'{parsed_file_dir}/{page_number+1}-{file_name}.png'
+        file = open(ocr_text_path, 'w')
+        file.write(ocr_text)
+        file.close()
     pdf.close()
-
-    # extract the text from the image using ocr
-    print('   extracting text...')
-    ocr_text = extract_text_from_img(page_img_path)
-
-    # recipe is illegible, ignore
-    if ocr_text == None:
-        print('done')
-        return
-    
-    print('   saving text...')
-    # save to a txt file in the same parsed dir
-    ocr_text_path = f'{parsed_file_dir}/{page_number+1}-{file_name}.png'
-    file = open(ocr_text_path, 'w')
-    file.write(ocr_text)
-    file.close()
     print('done\n')
 
 if __name__ == "__main__":
