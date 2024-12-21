@@ -18,7 +18,7 @@ def parse_files():
             continue
         
         if file_type == 'pdf':
-            extract_pdf(file_path)
+            extract_pdf(UNPARSED_FILES_DIR + "/" + file_path)
 
 def extract_pdf(file_path):
     file_name = ''.join(file_path.split('.')[:-1]).split('/')[-1]
@@ -34,4 +34,4 @@ def extract_pdf(file_path):
         pixel_map.save(page_image_name)
     pdf.close()
 
-extract_pdf('./recipes/unparsed/02-soups.pdf')
+parse_files()
