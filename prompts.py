@@ -1,26 +1,31 @@
 from functools import partial
 
-INITIAL_RECIPE_EXTRACTION_PROMPT = '''You are analyzing OCR text from a recipe book. Your goal is to identify if the provided text represents a single, complete recipe, is unfinished, or contains multiple recipes. Follow these criteria:
+UNFINISHED = 'Unfinished Recipe'
+COMPLETE = 'Complete Recipe'
+MULTIPLE = 'Multiple Recipes'
 
-1. **Complete Recipe**:
+INITIAL_RECIPE_EXTRACTION_PROMPT = f'''You are analyzing OCR text from a recipe book. Your goal is to identify if the provided text represents a single, complete recipe, is unfinished, or contains multiple recipes. Follow these criteria:
+
+1. **{COMPLETE}**:
    - It has a clear title, ingredient list, and instructions.
    - All sections seem to be present and logically flow together.
+   - There is at least one complete recipe contained within the provided text.
 
-2. **Unfinished Recipe**:
+2. **{UNFINISHED}**:
    - The text appears to end abruptly.
    - Only part of the recipe is present (e.g., ingredients but no instructions or an incomplete list).
    - The last sentence or section indicates continuation (e.g., "continued on the next page").
 
-3. **Multiple Recipes**:
+3. **{MULTIPLE}**:
    - There are clear separations between sections with distinct titles, ingredient lists, and instructions.
    - The content describes more than one dish.
 
-Now, analyze the following text and respond with one of these categories: "Complete Recipe," "Unfinished Recipe," or "Multiple Recipes."
+Now, analyze the following text and respond with one of these categories: "{COMPLETE}," "{UNFINISHED}," or "{MULTIPLE}."
 
 Only provide that answer, do not provide anything else.
 
 Text:
-{ocr_text}'''
+''' + '{ocr_text}'
 
 
 
@@ -65,3 +70,22 @@ Based on the evaluation, respond with one of the following categories:
 - **{ILLEGIBLE}**: The text is too distorted or unclear to evaluate properly.
 
 Text:''' + '{ocr_text}'
+
+RECIPE_EXTRACTION_PROMPT = ''''
+The following text is OCR output from a scanned recipe book. Your task is to extract a complete recipe from the text. If there are multiple recipes, extract only the complete recipes. Do not provide a recipe if it does not provide ingredients, a title, and all related recipe information. A recipe should include the following components:
+
+Title: The name of the recipe.
+Description (if present): A brief context or note about the recipe.
+Ingredients: A list of ingredients with their quantities.
+Instructions: Step-by-step directions to prepare the recipe.
+Do not include any irrelevant or incomplete information outside the recipe(s). If parts of the recipe (e.g., ingredients or instructions) are scattered, consolidate them into one complete section. Here's the text:
+{ocr_text}
+
+Make sure the output is in the form of:
+Title: <title>
+Description: <description>
+Ingredients: <ingredients>
+Instructions: <instructions>
+
+It MUST be in this format.
+'''

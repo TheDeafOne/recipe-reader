@@ -1,50 +1,39 @@
 import os
-from PIL import Image
-from dotenv import load_dotenv
+
 
 import pytesseract
-import easyocr
 import prompts  
-from groq import Groq
+from llm import prompt_llm
 from consts import PARSED_FILES_DIR
 
-load_dotenv()
-reader = easyocr.Reader(['en'])
-client = Groq(
-    api_key=os.environ.get('LLM_API_KEY'),
-)
 
-def ask_llm(content, role='user'):
-    chat_completion = client.chat.completions.create(
-        messages=[dict(role=role, content=content)],
-        model=os.environ.get('LLM_MODEL')
+
+
+def extract_recipes_from_directory(recipe_section):
+    ongoing_recipe_text = ''
+    related_images = []
+    recipe_file_names = sorted(
+        filter(lambda file: '.txt' in file, os.listdir(recipe_section)),
+        key=lambda filename: int(filename.split('-')[0])
     )
-    return chat_completion.choices[0].message.content
-
-
-
-def extract_recipes(recipe_section):
-    image_index = 0
-    unparsed_recipe = ''
-    recipe_image_file_names = os.listdir(recipe_section)
     
-    while image_index < len(recipe_image_file_names):
-        # extract text
-        img_path = PARSED_FILES_DIR + "/" + recipe_image_file_names[image_index]
-        ocr_text = reader.readtext(img_path, detail=0)
-        unparsed_recipe += ocr_text
+    for i, recipe_file_name in enumerate(recipe_file_names):
+        recipe_text_file = open(os.path.join(recipe_section, recipe_file_name), 'r')
+        ongoing_recipe_text += recipe_text_file.read()
+        related_images.append(recipe_file_name.replace('.txt','.png'))
+        response = prompt_llm(prompts.INITIAL_RECIPE_EXTRACTION_PROMPT.format(ocr_text=ongoing_recipe_text)) 
+   
+        if prompts.COMPLETE in response or prompts.MULTIPLE in response:
+            parsed_recipe_text = prompt_llm(prompts.RECIPE_EXTRACTION_PROMPT.format(ocr_text=ongoing_recipe_text))
+            parsed_recipe_title = parsed_recipe_text[:parsed_recipe_text.index("Description")].split('Title:')[-1].split('\n')[0][2:]
+            print(parsed_recipe_title)
+            # complete_recipe_package_file = open(recipe_section)
+
+            # clear data package info
+            ongoing_recipe_text = ''
+            related_images = []
+
         
-        # check with llm if recipe is complete
-        response = ask_llm(prompts.INITIAL_RECIPE_EXTRACTION_PROMPT.format(ocr_text=unparsed_recipe))
-        print(response)
-        break
 
-
-def extract_text_from_img(img_path):
-    result = reader.readtext(img_path, detail=0)
-    llm_response = ask_llm(prompts.LEGIBILITY_PROMPT.format(ocr_text=result))
-    if prompts.ILLEGIBLE in llm_response:
-        return None
-    
-    return result
-
+if __name__ == "__main__":
+    extract_recipes_from_directory('./recipes/parsed/02-soups')

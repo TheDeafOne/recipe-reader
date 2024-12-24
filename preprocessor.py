@@ -1,9 +1,13 @@
 import fitz
 from os import listdir
 import os
+import easyocr
+import prompts
+
+from llm import prompt_llm
 
 from consts import UNPARSED_FILES_DIR, PARSED_FILES_DIR
-from reader import extract_text_from_img
+reader = easyocr.Reader(['en'])
 
 VALID_FILE_TYPES = ['pdf']
 
@@ -49,12 +53,20 @@ def parse_pdf(file_path):
         
         print('   saving text...')
         # save to a txt file in the same parsed dir
-        ocr_text_path = f'{parsed_file_dir}/{page_number+1}-{file_name}.png'
+        ocr_text_path = f'{parsed_file_dir}/{page_number+1}-{file_name}.txt'
         file = open(ocr_text_path, 'w')
-        file.write(ocr_text)
+        file.write(' '.join(ocr_text))
         file.close()
     pdf.close()
     print('done\n')
+
+def extract_text_from_img(img_path):
+    result = reader.readtext(img_path, detail=0)
+    llm_response = prompt_llm(prompts.LEGIBILITY_PROMPT.format(ocr_text=result))
+    if prompts.ILLEGIBLE in llm_response:
+        return None
+    
+    return result
 
 if __name__ == "__main__":
     parse_files()
